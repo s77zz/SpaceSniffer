@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(dotnet --version)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet add *)",
+      "Bash(dotnet build *)",
+      "Bash(timeout 5 dotnet run --project SpaceSniffer/SpaceSniffer.csproj)",
+      "Bash(echo \"Exit code: $?\")"
+    ]
+  }
+}

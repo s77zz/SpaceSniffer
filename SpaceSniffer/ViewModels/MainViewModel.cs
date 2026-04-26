@@ -1,0 +1,232 @@
+using System.IO;
+using System.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
+using SpaceSniffer.Models;
+using SpaceSniffer.Helpers;
+using SpaceSniffer.Services;
+
+namespace SpaceSniffer.ViewModels;
+
+public partial class MainViewModel : ObservableObject
+{
+    private readonly DiskScanner _scanner = new();
+    private CancellationTokenSource? _cts;
+
+    [ObservableProperty]
+    private FileNode? _currentRoot;
+
+    [ObservableProperty]
+    private bool _isScanning;
+
+    [ObservableProperty]
+    private string _statusText = "Ready";
+
+    private readonly Stack<FileNode> _navigationHistory = new();
+
+    public bool CanGoBack => _navigationHistory.Count > 0;
+
+    public string WindowTitle => !string.IsNullOrEmpty(CurrentPath)
+        ? $"SpaceSniffer - {CurrentPath}"
+        : "SpaceSniffer";
+
+    [ObservableProperty]
+    private string _currentPath = "";
+
+    [ObservableProperty]
+    private int _scanProgressPercent;
+
+    [ObservableProperty]
+    private string _scanProgressText = "";
+
+    [RelayCommand]
+    private async Task SelectFolder()
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = "选择要分析的文件夹"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            await StartScan(dialog.FolderName);
+        }
+    }
+
+    [RelayCommand]
+    private async Task SelectDrive()
+    {
+        var drives = DriveInfo.GetDrives()
+            .Where(d => d.IsReady)
+            .Select(d => d.Name.TrimEnd('\\'))
+            .ToList();
+
+        if (drives.Count == 0) return;
+
+        var dialog = new Views.DriveSelectDialog();
+        dialog.Owner = Application.Current.MainWindow;
+        if (dialog.ShowDialog() == true && dialog.SelectedDrive != null)
+        {
+            await StartScan(dialog.SelectedDrive);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ScanAllDrives()
+    {
+        var drives = DriveInfo.GetDrives()
+            .Where(d => d.IsReady)
+            .Select(d => d.Name.TrimEnd('\\'))
+            .ToList();
+
+        if (drives.Count == 0) return;
+
+        if (drives.Count == 1)
+        {
+            await StartScan(drives[0]);
+            return;
+        }
+
+        var root = new FileNode
+        {
+            Name = "All Drives",
+            FullPath = "All Drives",
+            Type = FileNodeType.Folder
+        };
+
+        IsScanning = true;
+        CurrentPath = "All Drives";
+        CurrentRoot = root;
+        _navigationHistory.Clear();
+        OnPropertyChanged(nameof(CanGoBack));
+        OnPropertyChanged(nameof(WindowTitle));
+
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        try
+        {
+            var allDrives = drives.ToList();
+            for (int i = 0; i < allDrives.Count; i++)
+            {
+                token.ThrowIfCancellationRequested();
+                StatusText = $"Scanning {allDrives[i]}...";
+                var driveNode = await _scanner.ScanAsync(allDrives[i], null, token);
+                driveNode.SizeRatio = 1.0 / allDrives.Count;
+                root.Children.Add(driveNode);
+                root.Size += driveNode.Size;
+                ScanProgressPercent = (i + 1) * 100 / allDrives.Count;
+            }
+
+            foreach (var child in root.Children)
+            {
+                child.SizeRatio = root.Size > 0 ? (double)child.Size / root.Size : 0;
+            }
+
+            StatusText = $"Scan complete — {FormatSize(root.Size)} total";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "Scan cancelled";
+        }
+        finally
+        {
+            IsScanning = false;
+        }
+    }
+
+    [RelayCommand]
+    private void NavigateTo(FileNode? node)
+    {
+        if (node == null || CurrentRoot == null) return;
+
+        if (node.Type == FileNodeType.Folder && node.Children.Count > 0)
+        {
+            _navigationHistory.Push(CurrentRoot);
+            CurrentRoot = node;
+            OnPropertyChanged(nameof(CanGoBack));
+        }
+    }
+
+    [RelayCommand]
+    private void GoBack()
+    {
+        if (_navigationHistory.Count > 0)
+        {
+            CurrentRoot = _navigationHistory.Pop();
+            OnPropertyChanged(nameof(CanGoBack));
+        }
+    }
+
+    [RelayCommand]
+    private void CancelScan()
+    {
+        _cts?.Cancel();
+    }
+
+    public async Task ScanPathAsync(string path)
+    {
+        await StartScan(path);
+    }
+
+    private async Task StartScan(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return;
+
+        if (!ElevationService.IsRunningAsAdmin())
+        {
+            try
+            {
+                var di = new DirectoryInfo(path);
+                di.EnumerateFiles().Take(1).ToList();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                var result = MessageBox.Show(
+                    $"需要管理员权限来访问 {path}\n是否以管理员身份重启？",
+                    "权限不足",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    ElevationService.RestartAsAdmin(path);
+                }
+            }
+        }
+
+        _navigationHistory.Clear();
+        CurrentPath = path;
+        OnPropertyChanged(nameof(CanGoBack));
+        OnPropertyChanged(nameof(WindowTitle));
+
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        IsScanning = true;
+
+        try
+        {
+            var progress = new Progress<(int percent, string currentPath)>(p =>
+            {
+                ScanProgressPercent = p.percent;
+                ScanProgressText = $"Scanning: {p.currentPath}";
+                StatusText = $"Scanning: {p.currentPath}";
+            });
+
+            var result = await _scanner.ScanAsync(path, progress, token);
+            CurrentRoot = result;
+            StatusText = $"Scan complete — {FormatSize(result.Size)} in {result.Children.Count} items";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "Scan cancelled";
+        }
+        finally
+        {
+            IsScanning = false;
+        }
+    }
+
+    private static string FormatSize(long bytes) => Helpers.FormatHelper.FormatSize(bytes);
+}

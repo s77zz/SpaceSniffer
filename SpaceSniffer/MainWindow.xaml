@@ -1,0 +1,71 @@
+<Window x:Class="SpaceSniffer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:SpaceSniffer.Controls"
+        xmlns:vm="clr-namespace:SpaceSniffer.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance vm:MainViewModel}"
+        Title="{Binding WindowTitle}" Height="700" Width="1000"
+        WindowState="Maximized">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Menu Bar -->
+        <Menu Grid.Row="0">
+            <MenuItem Header="_File">
+                <MenuItem Header="Select _Folder..." Command="{Binding SelectFolderCommand}"/>
+                <MenuItem Header="Select _Drive..." Command="{Binding SelectDriveCommand}"/>
+                <MenuItem Header="Scan _All Drives" Command="{Binding ScanAllDrivesCommand}"/>
+                <Separator/>
+                <MenuItem Header="E_xit" Click="OnExitClick"/>
+            </MenuItem>
+            <MenuItem Header="_Navigation">
+                <MenuItem Header="_Back" Command="{Binding GoBackCommand}" InputGestureText="Alt+Left"
+                          IsEnabled="{Binding CanGoBack}"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Toolbar -->
+        <ToolBar Grid.Row="0" Margin="0,24,0,0">
+            <Button Content="← Back" Command="{Binding GoBackCommand}"
+                    IsEnabled="{Binding CanGoBack}" ToolTip="Go back (Alt+Left)"/>
+            <Separator/>
+            <Button Content="Select Folder" Command="{Binding SelectFolderCommand}"/>
+            <Button Content="Select Drive" Command="{Binding SelectDriveCommand}"/>
+            <Button Content="All Drives" Command="{Binding ScanAllDrivesCommand}"/>
+            <Separator/>
+            <Button Content="Cancel" Command="{Binding CancelScanCommand}"
+                    Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibilityConverter}}"/>
+        </ToolBar>
+
+        <!-- Treemap Control -->
+        <controls:TreemapControl
+            Grid.Row="1"
+            x:Name="Treemap"
+            ItemsSource="{Binding CurrentRoot}"
+            Margin="4"/>
+
+        <!-- Progress bar -->
+        <ProgressBar Grid.Row="1"
+                     Height="4"
+                     VerticalAlignment="Top"
+                     IsIndeterminate="{Binding IsScanning}"
+                     Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+        <!-- Status Bar -->
+        <StatusBar Grid.Row="2">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusText}"/>
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <TextBlock Text="{Binding ScanProgressText}"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>
