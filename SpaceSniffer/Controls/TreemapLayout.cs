@@ -79,15 +79,17 @@ public static class TreemapLayout
             }
         }
 
-        // Remaining bounds
+        // Remaining bounds — clamp to 0 to avoid floating-point precision issues
         Rect remainingBounds;
         if (isHorizontal)
         {
-            remainingBounds = new Rect(bounds.X, bounds.Y + rowThickness, bounds.Width, bounds.Height - rowThickness);
+            double remainingHeight = Math.Max(0, bounds.Height - rowThickness);
+            remainingBounds = new Rect(bounds.X, bounds.Y + rowThickness, bounds.Width, remainingHeight);
         }
         else
         {
-            remainingBounds = new Rect(bounds.X + rowThickness, bounds.Y, bounds.Width - rowThickness, bounds.Height);
+            double remainingWidth = Math.Max(0, bounds.Width - rowThickness);
+            remainingBounds = new Rect(bounds.X + rowThickness, bounds.Y, remainingWidth, bounds.Height);
         }
 
         if (remainingBounds.Width > 0 && remainingBounds.Height > 0 && remaining.Count > 0)

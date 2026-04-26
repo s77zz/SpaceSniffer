@@ -1,10 +1,10 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using SpaceSniffer.Models;
-using SpaceSniffer.Helpers;
 using SpaceSniffer.Services;
 
 namespace SpaceSniffer.ViewModels;
@@ -40,6 +40,11 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _scanProgressText = "";
 
+    public MainViewModel()
+    {
+        OnPropertyChanged(nameof(WindowTitle));
+    }
+
     [RelayCommand]
     private async Task SelectFolder()
     {
@@ -57,15 +62,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectDrive()
     {
-        var drives = DriveInfo.GetDrives()
-            .Where(d => d.IsReady)
-            .Select(d => d.Name.TrimEnd('\\'))
-            .ToList();
-
-        if (drives.Count == 0) return;
-
         var dialog = new Views.DriveSelectDialog();
-        dialog.Owner = Application.Current.MainWindow;
         if (dialog.ShowDialog() == true && dialog.SelectedDrive != null)
         {
             await StartScan(dialog.SelectedDrive);
@@ -100,7 +97,6 @@ public partial class MainViewModel : ObservableObject
         CurrentRoot = root;
         _navigationHistory.Clear();
         OnPropertyChanged(nameof(CanGoBack));
-        OnPropertyChanged(nameof(WindowTitle));
 
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
@@ -167,7 +163,8 @@ public partial class MainViewModel : ObservableObject
 
     public async Task ScanPathAsync(string path)
     {
-        await StartScan(path);
+        if (!string.IsNullOrEmpty(path))
+            await StartScan(path);
     }
 
     private async Task StartScan(string path)
@@ -216,7 +213,8 @@ public partial class MainViewModel : ObservableObject
 
             var result = await _scanner.ScanAsync(path, progress, token);
             CurrentRoot = result;
-            StatusText = $"Scan complete — {FormatSize(result.Size)} in {result.Children.Count} items";
+            var itemCount = result.Children.Count;
+            StatusText = $"Scan complete — {FormatSize(result.Size)} in {itemCount} items";
         }
         catch (OperationCanceledException)
         {
@@ -228,5 +226,16 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private static string FormatSize(long bytes) => Helpers.FormatHelper.FormatSize(bytes);
+    private static string FormatSize(long bytes)
+    {
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        double size = bytes;
+        int unitIndex = 0;
+        while (size >= 1024 && unitIndex < units.Length - 1)
+        {
+            size /= 1024;
+            unitIndex++;
+        }
+        return $"{size:0.##} {units[unitIndex]}";
+    }
 }

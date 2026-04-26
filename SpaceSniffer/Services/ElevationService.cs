@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Security.Principal;
 
@@ -27,7 +28,7 @@ public static class ElevationService
         {
             Process.Start(process);
         }
-        catch (System.ComponentModel.Win32Exception)
+        catch (Win32Exception)
         {
             // User cancelled UAC dialog — do nothing
             return;

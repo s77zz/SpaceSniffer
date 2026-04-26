@@ -1,7 +1,6 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
-using SpaceSniffer.Helpers;
 
 namespace SpaceSniffer.Views;
 
@@ -18,7 +17,7 @@ public partial class DriveSelectDialog : Window
             .Select(d => new DriveItem
             {
                 Name = d.Name.TrimEnd('\\'),
-                Label = $"{d.Name.TrimEnd('\\')}  ({FormatSize(d.TotalSize)} / {FormatSize(d.AvailableFreeSpace)} free)"
+                Label = $"{d.Name.TrimEnd('\\')}  ({FormatSize(d.TotalSize)} total, {FormatSize(d.AvailableFreeSpace)} free)"
             })
             .ToList();
 
@@ -49,7 +48,18 @@ public partial class DriveSelectDialog : Window
         DialogResult = false;
     }
 
-    private static string FormatSize(long bytes) => FormatHelper.FormatSize(bytes);
+    private static string FormatSize(long bytes)
+    {
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        double size = bytes;
+        int unitIndex = 0;
+        while (size >= 1024 && unitIndex < units.Length - 1)
+        {
+            size /= 1024;
+            unitIndex++;
+        }
+        return $"{size:0.##} {units[unitIndex]}";
+    }
 
     public class DriveItem
     {

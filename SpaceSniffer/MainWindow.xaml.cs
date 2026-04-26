@@ -19,14 +19,12 @@ public partial class MainWindow : Window
             _viewModel.NavigateToCommand.Execute(node);
         };
 
-        // Handle command-line --scan argument (elevated restart)
         var args = Environment.GetCommandLineArgs();
         if (args.Length > 1 && args[1] == "--scan" && args.Length > 2)
         {
-            var path = args[2];
             Loaded += async (_, _) =>
             {
-                await _viewModel.ScanPathAsync(path);
+                await _viewModel.ScanPathAsync(args[2]);
             };
         }
     }

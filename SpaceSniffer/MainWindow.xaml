@@ -34,7 +34,7 @@
         <!-- Toolbar -->
         <ToolBar Grid.Row="0" Margin="0,24,0,0">
             <Button Content="← Back" Command="{Binding GoBackCommand}"
-                    IsEnabled="{Binding CanGoBack}" ToolTip="Go back (Alt+Left)"/>
+                    IsEnabled="{Binding CanGoBack}" ToolTip="Go back"/>
             <Separator/>
             <Button Content="Select Folder" Command="{Binding SelectFolderCommand}"/>
             <Button Content="Select Drive" Command="{Binding SelectDriveCommand}"/>
@@ -51,11 +51,11 @@
             ItemsSource="{Binding CurrentRoot}"
             Margin="4"/>
 
-        <!-- Progress bar -->
+        <!-- Progress bar overlay -->
         <ProgressBar Grid.Row="1"
                      Height="4"
                      VerticalAlignment="Top"
-                     IsIndeterminate="{Binding IsScanning}"
+                     IsIndeterminate="True"
                      Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
         <!-- Status Bar -->
