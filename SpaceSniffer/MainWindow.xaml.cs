@@ -16,6 +16,7 @@ public partial class MainWindow : Window
 
         Treemap.NodeSelected += (_, node) =>
         {
+            _viewModel.StatusText = node.FullPath;
             _viewModel.NavigateToCommand.Execute(node);
         };
 

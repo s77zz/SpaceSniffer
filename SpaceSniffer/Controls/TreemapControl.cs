@@ -30,9 +30,11 @@ public class TreemapControl : FrameworkElement
 
     public event EventHandler<FileNode>? NodeSelected;
 
-    private Dictionary<FileNode, Rect> _nodeRects = new();
+    private List<(FileNode Node, Rect Rect)> _layout = new();
     private FileNode? _hoveredNode;
     private readonly Dictionary<FileNode, Color> _colorCache = new();
+
+    private const double MinNestSize = 30.0;
 
     private static readonly Random _rng = new();
     private static readonly Color[] FolderPalette =
@@ -60,13 +62,11 @@ public class TreemapControl : FrameworkElement
         var bounds = new Rect(0, 0, ActualWidth, ActualHeight);
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
 
-        var layoutItems = ItemsSource.Children.ToList();
-        if (layoutItems.Count == 0) return;
-
-        _nodeRects = TreemapLayout.Squarify(layoutItems, bounds);
+        _layout.Clear();
         _colorCache.Clear();
+        BuildNestedLayout(ItemsSource, bounds);
 
-        foreach (var (node, rect) in _nodeRects)
+        foreach (var (node, rect) in _layout)
         {
             if (rect.Width < 1 || rect.Height < 1) continue;
 
@@ -116,6 +116,23 @@ public class TreemapControl : FrameworkElement
         }
     }
 
+    private void BuildNestedLayout(FileNode node, Rect bounds)
+    {
+        if (node.Children.Count == 0) return;
+
+        var childLayout = TreemapLayout.Squarify(node.Children, bounds);
+        foreach (var (child, childRect) in childLayout)
+        {
+            _layout.Add((child, childRect));
+
+            if (child.Type == FileNodeType.Folder && child.Children.Count > 0
+                && childRect.Width >= MinNestSize && childRect.Height >= MinNestSize)
+            {
+                BuildNestedLayout(child, childRect);
+            }
+        }
+    }
+
     protected override void OnMouseMove(MouseEventArgs e)
     {
         var pos = e.GetPosition(this);
@@ -153,10 +170,10 @@ public class TreemapControl : FrameworkElement
 
     private FileNode? HitTest(Point point)
     {
-        foreach (var (node, rect) in _nodeRects)
+        for (int i = _layout.Count - 1; i >= 0; i--)
         {
-            if (rect.Contains(point))
-                return node;
+            if (_layout[i].Rect.Contains(point))
+                return _layout[i].Node;
         }
         return null;
     }
