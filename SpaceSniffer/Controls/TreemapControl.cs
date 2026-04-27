@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using SpaceSniffer.Models;
@@ -29,6 +30,35 @@ public class TreemapControl : FrameworkElement
     }
 
     public event EventHandler<FileNode>? NodeSelected;
+
+    private readonly Popup _tooltipPopup;
+    private readonly TextBlock _tooltipText;
+
+    public TreemapControl()
+    {
+        _tooltipText = new TextBlock
+        {
+            Foreground = Brushes.White,
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 300,
+        };
+        _tooltipPopup = new Popup
+        {
+            Child = new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(220, 40, 40, 40)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(100, 200, 200, 200)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8, 4, 8, 4),
+                Child = _tooltipText,
+            },
+            Placement = PlacementMode.Mouse,
+            AllowsTransparency = true,
+            IsOpen = false,
+        };
+    }
 
     private List<(FileNode Node, Rect Rect)> _layout = new();
     private FileNode? _hoveredNode;
@@ -144,15 +174,22 @@ public class TreemapControl : FrameworkElement
 
             if (hitNode != null)
             {
-                var sizeFormatted = FormatSize(hitNode.Size);
-                var ratio = hitNode.SizeRatio > 0 ? $"{hitNode.SizeRatio * 100:F1}%" : "";
-                ToolTip = $"{hitNode.Name}\n{sizeFormatted}\n{ratio}";
+                var sizeText = FormatSize(hitNode.Size);
+                var ratioText = hitNode.SizeRatio > 0 ? $"{hitNode.SizeRatio * 100:F1}%" : "";
+                _tooltipText.Text = $"{hitNode.Name}\n{sizeText}{(ratioText.Length > 0 ? $"  ({ratioText})" : "")}";
+                _tooltipPopup.IsOpen = true;
             }
             else
             {
-                ToolTip = null;
+                _tooltipPopup.IsOpen = false;
             }
         }
+    }
+
+    protected override void OnMouseLeave(MouseEventArgs e)
+    {
+        base.OnMouseLeave(e);
+        _tooltipPopup.IsOpen = false;
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
