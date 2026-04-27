@@ -63,7 +63,6 @@ public class TreemapControl : FrameworkElement
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
 
         _layout.Clear();
-        _colorCache.Clear();
         BuildNestedLayout(ItemsSource, bounds);
 
         foreach (var (node, rect) in _layout)
@@ -214,6 +213,7 @@ public class TreemapControl : FrameworkElement
     {
         if (d is TreemapControl control)
         {
+            control._colorCache.Clear();
             control.InvalidateVisual();
         }
     }
