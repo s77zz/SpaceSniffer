@@ -33,6 +33,28 @@ public class TreemapControl : FrameworkElement
 
     private readonly Popup _tooltipPopup;
     private readonly TextBlock _tooltipText;
+    private readonly List<(FileNode Node, Rect Rect)> _layout = new();
+    private FileNode? _hoveredNode;
+    private readonly Dictionary<FileNode, Color> _colorCache = new();
+
+    private const double MinNestSize = 30.0;
+    private static readonly Random _rng = new();
+    private static readonly Color[] FolderPalette =
+    {
+        Color.FromRgb(0xE8, 0x8D, 0x5C),
+        Color.FromRgb(0xE6, 0xA8, 0x6A),
+        Color.FromRgb(0xD4, 0x7B, 0x4A),
+        Color.FromRgb(0xE0, 0x96, 0x5E),
+        Color.FromRgb(0xC0, 0x7C, 0x4E),
+    };
+    private static readonly Color[] FilePalette =
+    {
+        Color.FromRgb(0x5C, 0x8D, 0xE8),
+        Color.FromRgb(0x6A, 0xA8, 0xE6),
+        Color.FromRgb(0x4A, 0x7B, 0xD4),
+        Color.FromRgb(0x5E, 0x96, 0xE0),
+        Color.FromRgb(0x4E, 0x7C, 0xC0),
+    };
 
     public TreemapControl()
     {
@@ -54,36 +76,12 @@ public class TreemapControl : FrameworkElement
                 Padding = new Thickness(8, 4, 8, 4),
                 Child = _tooltipText,
             },
-            Placement = PlacementMode.Mouse,
+            Placement = PlacementMode.Relative,
+            PlacementTarget = this,
             AllowsTransparency = true,
             IsOpen = false,
         };
     }
-
-    private List<(FileNode Node, Rect Rect)> _layout = new();
-    private FileNode? _hoveredNode;
-    private readonly Dictionary<FileNode, Color> _colorCache = new();
-
-    private const double MinNestSize = 30.0;
-
-    private static readonly Random _rng = new();
-    private static readonly Color[] FolderPalette =
-    {
-        Color.FromRgb(0xE8, 0x8D, 0x5C),
-        Color.FromRgb(0xE6, 0xA8, 0x6A),
-        Color.FromRgb(0xD4, 0x7B, 0x4A),
-        Color.FromRgb(0xE0, 0x96, 0x5E),
-        Color.FromRgb(0xC0, 0x7C, 0x4E),
-    };
-
-    private static readonly Color[] FilePalette =
-    {
-        Color.FromRgb(0x5C, 0x8D, 0xE8),
-        Color.FromRgb(0x6A, 0xA8, 0xE6),
-        Color.FromRgb(0x4A, 0x7B, 0xD4),
-        Color.FromRgb(0x5E, 0x96, 0xE0),
-        Color.FromRgb(0x4E, 0x7C, 0xC0),
-    };
 
     protected override void OnRender(DrawingContext dc)
     {
@@ -101,14 +99,14 @@ public class TreemapControl : FrameworkElement
 
             var color = GetNodeColor(node);
             var isHovered = node == _hoveredNode;
-            var fillColor = isHovered ? Lighten(color, 0.3f) : color;
+            var fillColor = isHovered ? CellHelper.Lighten(color, 0.3f) : color;
 
             dc.DrawRectangle(new SolidColorBrush(fillColor), null, rect);
             dc.DrawRectangle(null, new Pen(Brushes.Black, 0.5), rect);
 
             if (rect.Width > 40 && rect.Height > 20)
             {
-                var formattedText = new FormattedText(
+                var nameText = new FormattedText(
                     node.Name,
                     System.Globalization.CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
@@ -117,10 +115,10 @@ public class TreemapControl : FrameworkElement
                     Brushes.White,
                     1.0);
 
-                while (formattedText.Width > rect.Width - 6 && formattedText.Text.Length > 3)
+                while (nameText.Width > rect.Width - 6 && nameText.Text.Length > 3)
                 {
-                    formattedText = new FormattedText(
-                        formattedText.Text[..^4] + "...",
+                    nameText = new FormattedText(
+                        nameText.Text[..^4] + "...",
                         System.Globalization.CultureInfo.CurrentCulture,
                         FlowDirection.LeftToRight,
                         new Typeface("Segoe UI"),
@@ -129,18 +127,17 @@ public class TreemapControl : FrameworkElement
                         1.0);
                 }
 
-                dc.DrawText(formattedText, new Point(rect.X + 3, rect.Y + 3));
+                dc.DrawText(nameText, new Point(rect.X + 3, rect.Y + 3));
 
-                var sizeText = FormatSize(node.Size);
-                var sizeFormatted = new FormattedText(
-                    sizeText,
+                var sizeText = new FormattedText(
+                    CellHelper.FormatSize(node.Size),
                     System.Globalization.CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
                     new Typeface("Segoe UI"),
                     10,
                     Brushes.LightGray,
                     1.0);
-                dc.DrawText(sizeFormatted, new Point(rect.X + 3, rect.Y + 16));
+                dc.DrawText(sizeText, new Point(rect.X + 3, rect.Y + 16));
             }
         }
     }
@@ -174,9 +171,13 @@ public class TreemapControl : FrameworkElement
 
             if (hitNode != null)
             {
-                var sizeText = FormatSize(hitNode.Size);
-                var ratioText = hitNode.SizeRatio > 0 ? $"{hitNode.SizeRatio * 100:F1}%" : "";
-                _tooltipText.Text = $"{hitNode.Name}\n{sizeText}{(ratioText.Length > 0 ? $"  ({ratioText})" : "")}";
+                var sizeText = CellHelper.FormatSize(hitNode.Size);
+                var ratioText = hitNode.SizeRatio > 0 ? $"  ({hitNode.SizeRatio * 100:F1}%)" : "";
+                _tooltipText.Text = $"{hitNode.Name}\n{sizeText}{ratioText}";
+
+                // Position popup relative to the control (offset from mouse)
+                _tooltipPopup.HorizontalOffset = pos.X + 12;
+                _tooltipPopup.VerticalOffset = pos.Y + 12;
                 _tooltipPopup.IsOpen = true;
             }
             else
@@ -184,12 +185,20 @@ public class TreemapControl : FrameworkElement
                 _tooltipPopup.IsOpen = false;
             }
         }
+        else if (_tooltipPopup.IsOpen && hitNode != null)
+        {
+            // Same node, but mouse moved — update popup position
+            _tooltipPopup.HorizontalOffset = pos.X + 12;
+            _tooltipPopup.VerticalOffset = pos.Y + 12;
+        }
     }
 
     protected override void OnMouseLeave(MouseEventArgs e)
     {
         base.OnMouseLeave(e);
+        _hoveredNode = null;
         _tooltipPopup.IsOpen = false;
+        InvalidateVisual();
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -223,27 +232,6 @@ public class TreemapControl : FrameworkElement
         var color = palette[_rng.Next(palette.Length)];
         _colorCache[node] = color;
         return color;
-    }
-
-    private static Color Lighten(Color color, float factor)
-    {
-        return Color.FromRgb(
-            (byte)Math.Min(255, color.R + (255 - color.R) * factor),
-            (byte)Math.Min(255, color.G + (255 - color.G) * factor),
-            (byte)Math.Min(255, color.B + (255 - color.B) * factor));
-    }
-
-    private static string FormatSize(long bytes)
-    {
-        string[] units = { "B", "KB", "MB", "GB", "TB" };
-        double size = bytes;
-        int unitIndex = 0;
-        while (size >= 1024 && unitIndex < units.Length - 1)
-        {
-            size /= 1024;
-            unitIndex++;
-        }
-        return $"{size:0.##} {units[unitIndex]}";
     }
 
     private static void OnItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

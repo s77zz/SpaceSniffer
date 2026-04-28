@@ -20,8 +20,8 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!--  Navigation Menu  -->
-        <Menu Grid.Row="0" IsMainMenu="True">
+        <!--  Menu  -->
+        <Menu IsMainMenu="True" Visibility="Collapsed">
             <MenuItem Header="_File">
                 <MenuItem Command="{Binding SelectFolderCommand}" Header="Select _Folder..." />
                 <MenuItem Command="{Binding SelectDriveCommand}" Header="Select _Drive..." />
@@ -41,6 +41,64 @@
             </MenuItem>
         </Menu>
 
+        <!--  Fluent Toolbar  -->
+        <Border Grid.Row="0"
+                Margin="0"
+                Padding="8,0"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                BorderThickness="0,0,0,1">
+            <ui:CommandBar Background="Transparent"
+                           DefaultLabelPosition="Right"
+                           IsOpen="True"
+                           OverflowButtonVisibility="Collapsed">
+                <ui:AppBarButton Command="{Binding GoBackCommand}"
+                                 IsEnabled="{Binding CanGoBack}"
+                                 Label="Back"
+                                 ToolTip="Go back to previous folder (Alt+Left)">
+                    <ui:AppBarButton.Icon>
+                        <ui:FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE72B;" />
+                    </ui:AppBarButton.Icon>
+                </ui:AppBarButton>
+
+                <ui:AppBarSeparator />
+
+                <ui:AppBarButton Command="{Binding SelectFolderCommand}"
+                                 Label="Folder"
+                                 ToolTip="Select a folder to scan">
+                    <ui:AppBarButton.Icon>
+                        <ui:FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE8B7;" />
+                    </ui:AppBarButton.Icon>
+                </ui:AppBarButton>
+
+                <ui:AppBarButton Command="{Binding SelectDriveCommand}"
+                                 Label="Drive"
+                                 ToolTip="Select a drive to scan">
+                    <ui:AppBarButton.Icon>
+                        <ui:FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xEDA2;" />
+                    </ui:AppBarButton.Icon>
+                </ui:AppBarButton>
+
+                <ui:AppBarButton Command="{Binding ScanAllDrivesCommand}"
+                                 Label="All Drives"
+                                 ToolTip="Scan all available drives">
+                    <ui:AppBarButton.Icon>
+                        <ui:FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE71D;" />
+                    </ui:AppBarButton.Icon>
+                </ui:AppBarButton>
+
+                <ui:AppBarSeparator />
+
+                <ui:AppBarButton Command="{Binding CancelScanCommand}"
+                                 Label="Cancel"
+                                 ToolTip="Cancel current scan"
+                                 Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <ui:AppBarButton.Icon>
+                        <ui:FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE711;" />
+                    </ui:AppBarButton.Icon>
+                </ui:AppBarButton>
+            </ui:CommandBar>
+        </Border>
+
         <!--  Treemap Control  -->
         <controls:TreemapControl x:Name="Treemap"
                                  Grid.Row="1"
@@ -57,10 +115,10 @@
         <!--  Status Bar  -->
         <StatusBar Grid.Row="2">
             <StatusBarItem>
-                <TextBlock Text="{Binding StatusText}" />
+                <TextBlock Margin="5" Text="{Binding StatusText}" />
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Text="{Binding ScanProgressText}" />
+                <TextBlock Margin="5" Text="{Binding ScanProgressText}" />
             </StatusBarItem>
         </StatusBar>
     </Grid>
