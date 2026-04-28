@@ -98,7 +98,7 @@ dotnet publish .\SpaceSniffer\SpaceSniffer.csproj -c Release
 
 ### 主界面
 
-![主界面](./sceenshots/PixPin_2026-04-28_09-45-14.jpg)
+![主界面](sceenshots/PixPin_2026-04-28_09-45-14.jpg)
 
  
 
