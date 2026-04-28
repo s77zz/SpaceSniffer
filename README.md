@@ -94,11 +94,11 @@ dotnet publish .\SpaceSniffer\SpaceSniffer.csproj -c Release
 
 ## 界面截图
 
-> 以下图片引用项目根目录下的 `sceenshots/` 目录。若目录名实际为 `screenshots/`，请同步调整路径。
+> 以下图片引用项目根目录下的 `screenshots/` 目录。
 
 ### 主界面
 
-![主界面](sceenshots/PixPin_2026-04-28_09-45-14.jpg)
+![主界面](screenshots/PixPin_2026-04-28_09-45-14.jpg)
 
  
 
