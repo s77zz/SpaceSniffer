@@ -98,15 +98,9 @@ dotnet publish .\SpaceSniffer\SpaceSniffer.csproj -c Release
 
 ### 主界面
 
-![主界面](./sceenshots/main-window.png)
+![主界面](./sceenshots/PixPin_2026-04-28_09-45-14.jpg)
 
-### 扫描过程
-
-![扫描过程](./sceenshots/scanning.png)
-
-### Treemap 视图
-
-![Treemap 视图](./sceenshots/treemap-view.png)
+ 
 
 ## 命令行参数
 
