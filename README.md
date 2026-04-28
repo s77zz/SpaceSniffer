@@ -92,6 +92,22 @@ dotnet publish .\SpaceSniffer\SpaceSniffer.csproj -c Release
 某些系统目录或受保护目录可能需要管理员权限。
 当应用检测到权限不足时，会提示以管理员身份重新启动，并自动带上待扫描路径。
 
+## 界面截图
+
+> 以下图片引用项目根目录下的 `sceenshots/` 目录。若目录名实际为 `screenshots/`，请同步调整路径。
+
+### 主界面
+
+![主界面](./sceenshots/main-window.png)
+
+### 扫描过程
+
+![扫描过程](./sceenshots/scanning.png)
+
+### Treemap 视图
+
+![Treemap 视图](./sceenshots/treemap-view.png)
+
 ## 命令行参数
 
 项目支持通过命令行直接启动扫描：
