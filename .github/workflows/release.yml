@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'   # 触发条件：推送 v1.0.0 这类 tag
+
+permissions:
+  contents: write  # 允许创建 Release 和上传附件
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest  # WPF 必须在 Windows 上构建
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Publish (self-contained, single file)
+        run: |
+          dotnet publish SpaceSniffer/SpaceSniffer.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -o publish/
+
+      - name: Zip artifact
+        run: Compress-Archive -Path publish/* -DestinationPath SpaceSniffer-${{ github.ref_name }}-win-x64.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SpaceSniffer ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true   # 自动从提交记录生成 changelog
+          files: SpaceSniffer-${{ github.ref_name }}-win-x64.zip
