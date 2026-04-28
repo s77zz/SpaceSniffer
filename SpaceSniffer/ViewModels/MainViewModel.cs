@@ -12,6 +12,7 @@ namespace SpaceSniffer.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly DiskScanner _scanner = new();
+    private readonly System.Diagnostics.Stopwatch _scanStopwatch = new();
     private CancellationTokenSource? _cts;
 
     [ObservableProperty]
@@ -50,7 +51,7 @@ public partial class MainViewModel : ObservableObject
     {
         var dialog = new OpenFolderDialog
         {
-            Title = "选择要分析的文件夹"
+            Title = "Select a folder to analyze"
         };
 
         if (dialog.ShowDialog() == true)
@@ -100,6 +101,7 @@ public partial class MainViewModel : ObservableObject
 
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
+        _scanStopwatch.Restart();
 
         try
         {
@@ -120,7 +122,8 @@ public partial class MainViewModel : ObservableObject
                 child.SizeRatio = root.Size > 0 ? (double)child.Size / root.Size : 0;
             }
 
-            StatusText = $"Scan complete — {FormatSize(root.Size)} total";
+            _scanStopwatch.Stop();
+            StatusText = $"Scan complete — {FormatSize(root.Size)} total ({FormatDuration(_scanStopwatch.Elapsed)})";
         }
         catch (OperationCanceledException)
         {
@@ -181,8 +184,8 @@ public partial class MainViewModel : ObservableObject
             catch (UnauthorizedAccessException)
             {
                 var result = MessageBox.Show(
-                    $"需要管理员权限来访问 {path}\n是否以管理员身份重启？",
-                    "权限不足",
+                    $"Administrator privileges required to access {path}\nRestart as administrator?",
+                    "Insufficient Permissions",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
 
@@ -200,6 +203,7 @@ public partial class MainViewModel : ObservableObject
 
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
+        _scanStopwatch.Restart();
         IsScanning = true;
 
         try
@@ -211,10 +215,13 @@ public partial class MainViewModel : ObservableObject
                 StatusText = $"Scanning: {p.currentPath}";
             });
 
-            var result = await _scanner.ScanAsync(path, progress, token);
+            var throttled = new ThrottledProgress<(int percent, string currentPath)>(progress, 200);
+            var result = await _scanner.ScanAsync(path, throttled, token);
+            _scanStopwatch.Stop();
             CurrentRoot = result;
             var itemCount = result.Children.Count;
-            StatusText = $"Scan complete — {FormatSize(result.Size)} in {itemCount} items";
+            StatusText = $"Scan complete — {FormatSize(result.Size)} in {itemCount} items ({FormatDuration(_scanStopwatch.Elapsed)})";
+            ScanProgressText = "";
         }
         catch (OperationCanceledException)
         {
@@ -224,6 +231,15 @@ public partial class MainViewModel : ObservableObject
         {
             IsScanning = false;
         }
+    }
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        if (duration.TotalSeconds < 1)
+            return $"{duration.Milliseconds}ms";
+        if (duration.TotalMinutes < 1)
+            return $"{duration.TotalSeconds:F1}s";
+        return $"{(int)duration.TotalMinutes}m {duration.Seconds}s";
     }
 
     private static string FormatSize(long bytes)

@@ -29,6 +29,16 @@ public class TreemapControl : FrameworkElement
         set => SetValue(SelectedNodeProperty, value);
     }
 
+    public static readonly DependencyProperty HoveredNodePathProperty =
+        DependencyProperty.Register(nameof(HoveredNodePath), typeof(string), typeof(TreemapControl),
+            new FrameworkPropertyMetadata(string.Empty));
+
+    public string HoveredNodePath
+    {
+        get => (string)GetValue(HoveredNodePathProperty);
+        set => SetValue(HoveredNodePathProperty, value);
+    }
+
     public event EventHandler<FileNode>? NodeSelected;
 
     private readonly Popup _tooltipPopup;
@@ -167,6 +177,7 @@ public class TreemapControl : FrameworkElement
         if (hitNode != _hoveredNode)
         {
             _hoveredNode = hitNode;
+            HoveredNodePath = hitNode?.FullPath ?? "";
             InvalidateVisual();
 
             if (hitNode != null)
@@ -197,6 +208,7 @@ public class TreemapControl : FrameworkElement
     {
         base.OnMouseLeave(e);
         _hoveredNode = null;
+        HoveredNodePath = "";
         _tooltipPopup.IsOpen = false;
         InvalidateVisual();
     }

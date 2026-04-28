@@ -47,7 +47,8 @@
                 Padding="8,0"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                 BorderThickness="0,0,0,1">
-            <ui:CommandBar Background="Transparent"
+            <ui:CommandBar HorizontalAlignment="Left"
+                           Background="Transparent"
                            DefaultLabelPosition="Right"
                            IsOpen="True"
                            OverflowButtonVisibility="Collapsed">
@@ -118,7 +119,9 @@
                 <TextBlock Margin="5" Text="{Binding StatusText}" />
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Margin="5" Text="{Binding ScanProgressText}" />
+                <TextBlock Margin="5"
+                           Text="{Binding ElementName=Treemap, Path=HoveredNodePath}"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
             </StatusBarItem>
         </StatusBar>
     </Grid>
