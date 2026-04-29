@@ -1,0 +1,65 @@
+<Window x:Class="SpaceSniffer.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.modernwpf.com/2019"
+        Title="Settings"
+        Width="520"
+        Height="220"
+        ui:WindowHelper.UseModernWindowStyle="True"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock FontSize="16"
+                   FontWeight="SemiBold"
+                   Text="Treemap Display" />
+
+        <StackPanel Grid.Row="1"
+                    Margin="0,12,0,0"
+                    Orientation="Horizontal">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Max nesting depth:" />
+                <TextBlock MaxWidth="240"
+                           Margin="0,4,0,0"
+                           FontSize="12"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                           TextWrapping="Wrap">
+                    Limits how many levels of sub-folders are shown nested inside the treemap. Prevents overly small items at deep paths.
+                </TextBlock>
+            </StackPanel>
+
+            <ui:NumberBox x:Name="DepthNumberBox"
+                          Width="180"
+                          Height="32"
+                          Margin="16,0,0,0"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Top"
+                          Maximum="10"
+                          Minimum="1"
+                          SmallChange="1"
+                          SpinButtonPlacementMode="Inline"
+                          Value="3" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="2"
+                    Margin="0,12,0,0"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal">
+            <Button Width="75"
+                    Margin="0,0,8,0"
+                    Click="OnOkClick"
+                    Content="OK"
+                    IsDefault="True" />
+            <Button Width="75"
+                    Click="OnCancelClick"
+                    Content="Cancel"
+                    IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -29,6 +29,16 @@ public class TreemapControl : FrameworkElement
         set => SetValue(SelectedNodeProperty, value);
     }
 
+    public static readonly DependencyProperty MaxDepthProperty =
+        DependencyProperty.Register(nameof(MaxDepth), typeof(int), typeof(TreemapControl),
+            new FrameworkPropertyMetadata(3, FrameworkPropertyMetadataOptions.AffectsRender, OnMaxDepthChanged));
+
+    public int MaxDepth
+    {
+        get => (int)GetValue(MaxDepthProperty);
+        set => SetValue(MaxDepthProperty, value);
+    }
+
     public static readonly DependencyProperty HoveredNodePathProperty =
         DependencyProperty.Register(nameof(HoveredNodePath), typeof(string), typeof(TreemapControl),
             new FrameworkPropertyMetadata(string.Empty));
@@ -152,7 +162,7 @@ public class TreemapControl : FrameworkElement
         }
     }
 
-    private void BuildNestedLayout(FileNode node, Rect bounds)
+    private void BuildNestedLayout(FileNode node, Rect bounds, int currentLevel = 1)
     {
         if (node.Children.Count == 0) return;
 
@@ -161,10 +171,11 @@ public class TreemapControl : FrameworkElement
         {
             _layout.Add((child, childRect));
 
-            if (child.Type == FileNodeType.Folder && child.Children.Count > 0
+            if (currentLevel < MaxDepth
+                && child.Type == FileNodeType.Folder && child.Children.Count > 0
                 && childRect.Width >= MinNestSize && childRect.Height >= MinNestSize)
             {
-                BuildNestedLayout(child, childRect);
+                BuildNestedLayout(child, childRect, currentLevel + 1);
             }
         }
     }
@@ -274,6 +285,14 @@ public class TreemapControl : FrameworkElement
         if (d is TreemapControl control)
         {
             control._colorCache.Clear();
+            control.InvalidateVisual();
+        }
+    }
+
+    private static void OnMaxDepthChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TreemapControl control)
+        {
             control.InvalidateVisual();
         }
     }

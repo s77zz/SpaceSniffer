@@ -27,11 +27,16 @@ public partial class MainViewModel : ObservableObject
     private string _statusText = "Ready";
 
     private readonly Stack<FileNode> _navigationHistory = new();
+    private int _maxAvailableDepth = 10;
+
+    public int MaxAvailableDepth => _maxAvailableDepth;
 
     public bool CanGoBack => _navigationHistory.Count > 0;
 
+    public int CurrentDepth => _navigationHistory.Count;
+
     public string WindowTitle => !string.IsNullOrEmpty(CurrentPath)
-        ? $"SpaceSniffer - {CurrentPath}"
+        ? $"SpaceSniffer - {CurrentPath}  (Depth: {CurrentDepth}/{MaxDepth})"
         : "SpaceSniffer";
 
     [ObservableProperty]
@@ -42,6 +47,14 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private string _scanProgressText = "";
+
+    [ObservableProperty]
+    private int _maxDepth = 3;
+
+    partial void OnMaxDepthChanged(int value)
+    {
+        OnPropertyChanged(nameof(WindowTitle));
+    }
 
     public MainViewModel()
     {
@@ -124,6 +137,10 @@ public partial class MainViewModel : ObservableObject
                 child.SizeRatio = root.Size > 0 ? (double)child.Size / root.Size : 0;
             }
 
+            _maxAvailableDepth = root.Children.Count > 0
+                ? root.Children.Max(c => GetMaxTreeDepth(c))
+                : 1;
+
             _scanStopwatch.Stop();
             StatusText = $"Scan complete — {FormatSize(root.Size)} total ({FormatDuration(_scanStopwatch.Elapsed)})";
         }
@@ -147,6 +164,8 @@ public partial class MainViewModel : ObservableObject
             _navigationHistory.Push(CurrentRoot);
             CurrentRoot = node;
             OnPropertyChanged(nameof(CanGoBack));
+            OnPropertyChanged(nameof(CurrentDepth));
+            OnPropertyChanged(nameof(WindowTitle));
         }
     }
 
@@ -157,6 +176,8 @@ public partial class MainViewModel : ObservableObject
         {
             CurrentRoot = _navigationHistory.Pop();
             OnPropertyChanged(nameof(CanGoBack));
+            OnPropertyChanged(nameof(CurrentDepth));
+            OnPropertyChanged(nameof(WindowTitle));
         }
     }
 
@@ -287,6 +308,19 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        var dialog = new Views.SettingsWindow();
+        dialog.SetInitialDepth(MaxDepth);
+        dialog.SetMaxAvailableDepth(MaxAvailableDepth);
+
+        if (dialog.ShowDialog() == true)
+        {
+            MaxDepth = dialog.SelectedMaxDepth;
+        }
+    }
+
     public async Task ScanPathAsync(string path)
     {
         if (!string.IsNullOrEmpty(path))
@@ -343,6 +377,7 @@ public partial class MainViewModel : ObservableObject
             _scanStopwatch.Stop();
             CurrentRoot = result;
             var itemCount = result.Children.Count;
+            _maxAvailableDepth = GetMaxTreeDepth(result);
             StatusText = $"Scan complete — {FormatSize(result.Size)} in {itemCount} items ({FormatDuration(_scanStopwatch.Elapsed)})";
             ScanProgressText = "";
         }
@@ -376,5 +411,19 @@ public partial class MainViewModel : ObservableObject
             unitIndex++;
         }
         return $"{size:0.##} {units[unitIndex]}";
+    }
+
+    private static int GetMaxTreeDepth(FileNode node, int currentDepth = 0)
+    {
+        if (node.Children.Count == 0)
+            return currentDepth;
+
+        int max = currentDepth;
+        foreach (var child in node.Children)
+        {
+            int d = GetMaxTreeDepth(child, currentDepth + 1);
+            if (d > max) max = d;
+        }
+        return max;
     }
 }

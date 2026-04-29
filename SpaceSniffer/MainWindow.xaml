@@ -89,6 +89,16 @@
 
                 <ui:AppBarSeparator />
 
+                <ui:AppBarButton Command="{Binding OpenSettingsCommand}"
+                                 Label="Settings"
+                                 ToolTip="Configure display settings">
+                    <ui:AppBarButton.Icon>
+                        <ui:FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE713;" />
+                    </ui:AppBarButton.Icon>
+                </ui:AppBarButton>
+
+                <ui:AppBarSeparator />
+
                 <ui:AppBarButton Command="{Binding CancelScanCommand}"
                                  Label="Cancel"
                                  ToolTip="Cancel current scan"
@@ -104,7 +114,8 @@
         <controls:TreemapControl x:Name="Treemap"
                                  Grid.Row="1"
                                  Margin="4"
-                                 ItemsSource="{Binding CurrentRoot}">
+                                 ItemsSource="{Binding CurrentRoot}"
+                                 MaxDepth="{Binding MaxDepth}">
             <controls:TreemapControl.ContextMenu>
                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                     <MenuItem Command="{Binding OpenInExplorerCommand}"
