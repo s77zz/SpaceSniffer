@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
 using SpaceSniffer.Models;
 using SpaceSniffer.Services;
@@ -162,6 +164,127 @@ public partial class MainViewModel : ObservableObject
     private void CancelScan()
     {
         _cts?.Cancel();
+    }
+
+    [RelayCommand]
+    private void OpenInExplorer(FileNode? node)
+    {
+        var path = node?.FullPath;
+        if (string.IsNullOrWhiteSpace(path)) return;
+        if (path == "All Drives") return;
+
+        try
+        {
+            var args = Directory.Exists(path)
+                ? $"\"{path}\""
+                : File.Exists(path)
+                    ? $"/select,\"{path}\""
+                    : $"\"{Path.GetDirectoryName(path) ?? path}\"";
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = args,
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // Best-effort only (e.g. invalid path, shell restrictions)
+        }
+    }
+
+    [RelayCommand]
+    private void CopyPath(FileNode? node)
+    {
+        var path = node?.FullPath;
+        if (string.IsNullOrWhiteSpace(path)) return;
+        if (path == "All Drives") return;
+
+        try
+        {
+            Clipboard.SetText(path);
+            StatusText = "Path copied";
+        }
+        catch
+        {
+            // Ignore clipboard failures
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteFile(FileNode? node)
+    {
+        if (node?.FullPath == null || node.FullPath == "All Drives") return;
+
+        var isFolder = node.Type == FileNodeType.Folder;
+        var name = node.Name;
+
+        var msg = isFolder
+            ? $"Permanently delete folder \"{name}\" and all its contents from disk?\n\nThis is a disk-level deletion, not just removing it from the display."
+            : $"Permanently delete file \"{name}\" from disk?\n\nThis is a disk-level deletion, not just removing it from the display.";
+
+        if (MessageBox.Show(msg, "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+            return;
+
+        StatusText = $"Moving {name} to Recycle Bin...";
+
+        try
+        {
+            if (isFolder)
+            {
+                FileSystem.DeleteDirectory(node.FullPath,
+                    UIOption.OnlyErrorDialogs,
+                    RecycleOption.SendToRecycleBin);
+            }
+            else
+            {
+                FileSystem.DeleteFile(node.FullPath,
+                    UIOption.OnlyErrorDialogs,
+                    RecycleOption.SendToRecycleBin);
+            }
+
+            StatusText = $"\"{name}\" moved to Recycle Bin";
+        }
+        catch (IOException)
+        {
+            // File/folder is too large for the Recycle Bin
+            var permResult = MessageBox.Show(
+                $"\"{name}\" is too large for the Recycle Bin.\n\nPermanently delete it?",
+                "Too Large for Recycle Bin",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (permResult != MessageBoxResult.Yes) return;
+
+            try
+            {
+                if (isFolder)
+                    Directory.Delete(node.FullPath, true);
+                else
+                    File.Delete(node.FullPath);
+
+                StatusText = $"\"{name}\" permanently deleted";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to delete: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to delete: {ex.Message}", "Error",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        // Re-scan current folder to refresh the view
+        if (!string.IsNullOrEmpty(CurrentPath))
+        {
+            await StartScan(CurrentPath);
+        }
     }
 
     public async Task ScanPathAsync(string path)

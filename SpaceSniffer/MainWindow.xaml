@@ -104,7 +104,22 @@
         <controls:TreemapControl x:Name="Treemap"
                                  Grid.Row="1"
                                  Margin="4"
-                                 ItemsSource="{Binding CurrentRoot}" />
+                                 ItemsSource="{Binding CurrentRoot}">
+            <controls:TreemapControl.ContextMenu>
+                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                    <MenuItem Command="{Binding OpenInExplorerCommand}"
+                              CommandParameter="{Binding PlacementTarget.SelectedNode, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                              Header="Open in Explorer" />
+                    <MenuItem Command="{Binding CopyPathCommand}"
+                              CommandParameter="{Binding PlacementTarget.SelectedNode, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                              Header="Copy Path" />
+                    <Separator />
+                    <MenuItem Command="{Binding DeleteFileCommand}"
+                              CommandParameter="{Binding PlacementTarget.SelectedNode, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                              Header="Delete" />
+                </ContextMenu>
+            </controls:TreemapControl.ContextMenu>
+        </controls:TreemapControl>
 
         <!--  Progress bar overlay  -->
         <ProgressBar Grid.Row="1"

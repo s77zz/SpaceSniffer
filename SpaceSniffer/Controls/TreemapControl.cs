@@ -225,6 +225,29 @@ public class TreemapControl : FrameworkElement
         }
     }
 
+    protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
+    {
+        var pos = e.GetPosition(this);
+        var hitNode = HitTest(pos);
+
+        if (hitNode != null)
+        {
+            SelectedNode = hitNode;
+
+            if (ContextMenu != null)
+            {
+                ContextMenu.PlacementTarget = this;
+                ContextMenu.Placement = PlacementMode.RelativePoint;
+                ContextMenu.HorizontalOffset = pos.X;
+                ContextMenu.VerticalOffset = pos.Y;
+                ContextMenu.IsOpen = true;
+                e.Handled = true;
+            }
+        }
+
+        base.OnMouseRightButtonUp(e);
+    }
+
     private FileNode? HitTest(Point point)
     {
         for (int i = _layout.Count - 1; i >= 0; i--)
